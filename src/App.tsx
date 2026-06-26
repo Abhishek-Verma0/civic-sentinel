@@ -5,59 +5,15 @@ import ReportForm from './components/ReportForm';
 import AuthorityDashboard from './components/AuthorityDashboard';
 import MapTab from './components/MapTab';
 import ImpactDashboard from './components/ImpactDashboard';
-import { Shield, Eye, Settings, HeartHandshake, MapPin, BarChart3, HelpCircle, Cpu, AlertCircle, RefreshCw, Layers, Award, LogOut, UserCheck } from 'lucide-react';
-import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
-import { auth, db } from "./firebase";
-import { doc, getDoc } from "firebase/firestore";
-import AuthScreen from "./components/AuthScreen";
+import { Shield, Settings, HeartHandshake, BarChart3, HelpCircle, Cpu, RefreshCw, Layers, Award } from 'lucide-react';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [role, setRole] = useState<'citizen' | 'authority'>('citizen');
   const [activeTab, setActiveTab] = useState<'report' | 'map' | 'dashboard' | 'impact'>('report');
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isResolvingId, setIsResolvingId] = useState<string | null>(null);
-
-  // Monitor firebase authentication state
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const userDocSnap = await getDoc(doc(db, "users", user.uid));
-          if (userDocSnap.exists()) {
-            const profile = userDocSnap.data();
-            setUserProfile(profile);
-            setRole(profile.role || 'citizen');
-          } else {
-            const fallbackRole = user.email?.includes('admin') ? 'authority' : 'citizen';
-            const profile = {
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || (fallbackRole === 'authority' ? 'Chief Dispatcher' : 'Model Citizen'),
-              role: fallbackRole,
-              createdAt: new Date().toISOString()
-            };
-            setUserProfile(profile);
-            setRole(fallbackRole);
-          }
-        } catch (err) {
-          console.error("Error reading user profile:", err);
-          const fallbackRole = user.email?.includes('admin') ? 'authority' : 'citizen';
-          setRole(fallbackRole);
-        }
-      } else {
-        setCurrentUser(null);
-        setUserProfile(null);
-      }
-      setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   // Fetch reports from Express server
   const fetchReports = async () => {
@@ -72,14 +28,13 @@ export default function App() {
     }
   };
 
-  // Synchronize reports on mount when authenticated and poll
+  // Synchronize reports on mount and poll
   useEffect(() => {
-    if (!currentUser) return;
     setIsLoading(true);
     fetchReports();
     const interval = setInterval(fetchReports, 4500);
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, []);
 
   // Sync default tab based on role toggle for a smooth UX
   useEffect(() => {
@@ -137,44 +92,42 @@ export default function App() {
             </div>
           </div>
 
-          {/* User Session and Actions */}
-          {currentUser && (
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-xs font-bold text-white flex items-center gap-1">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  {userProfile?.displayName || currentUser.displayName || currentUser.email}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium capitalize flex items-center gap-1 mt-0.5">
-                  Role: <strong className="text-indigo-400 font-bold">{role === 'authority' ? 'Municipal Authority' : 'Registered Citizen'}</strong>
-                </span>
-              </div>
+          {/* Action Row: Role toggle */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
-                onClick={() => firebaseSignOut(auth)}
-                className="text-xs font-bold px-3 py-2 rounded-xl bg-slate-800 border border-slate-700/80 hover:bg-red-950/20 hover:border-red-900 hover:text-red-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 duration-100"
+                onClick={() => setRole('citizen')}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 duration-100 ${
+                  role === 'citizen'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
+                <HeartHandshake className="w-3.5 h-3.5" />
+                Citizen Portal
+              </button>
+              <button
+                onClick={() => setRole('authority')}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 duration-100 ${
+                  role === 'authority'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Authority Control Room
               </button>
             </div>
-          )}
+          </div>
         </div>
       </header>
 
-      {!currentUser ? (
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 flex items-center justify-center">
-          <AuthScreen onAuthSuccess={(user, resolvedRole) => {
-            setCurrentUser(user);
-            setRole(resolvedRole);
-          }} />
-        </main>
-      ) : (
-        /* CORE INTERACTIVE WORKSPACE TABS */
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-3">
-            
-            {/* Navigation Controls */}
-            <div className="flex gap-2 p-1 bg-slate-200/60 rounded-xl border border-slate-300/40 overflow-x-auto max-w-full whitespace-nowrap select-none scrollbar-hide shrink-0">
+      {/* CORE INTERACTIVE WORKSPACE TABS */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-3">
+          
+          {/* Navigation Controls */}
+          <div className="flex gap-2 p-1 bg-slate-200/60 rounded-xl border border-slate-300/40 overflow-x-auto max-w-full whitespace-nowrap select-none scrollbar-hide shrink-0">
             {role === 'citizen' && (
               <button
                 onClick={() => setActiveTab('report')}
@@ -320,7 +273,6 @@ export default function App() {
           </AnimatePresence>
         )}
       </main>
-      )}
 
       {/* FOOTER */}
       <footer className="bg-slate-100 border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
