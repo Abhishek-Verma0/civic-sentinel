@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Report": {
+      "title": "Report",
+      "description": "A civic infrastructure report submitted by a citizen, triaged by AI, and managed by city authorities.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique report ID, e.g. REP-4011" },
+        "category": { "type": "string", "enum": ["pothole", "garbage", "waterlogging", "water_leak", "streetlight", "open_drain", "other"] },
+        "severity": { "type": "integer" },
+        "shortDescription": { "type": "string" },
+        "hazard": { "type": "boolean" },
+        "photoUrl": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "required": ["lat", "lng"]
+        },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "department": { "type": "string", "enum": ["Roads (PWD / Municipal Corporation)", "Sanitation (Solid Waste Management)", "Drainage (Storm Water / Sewerage)", "Water Supply (Jal Board)", "Electricity (DISCOM / Municipal Electrical)", "Other"] },
+        "priority": { "type": "string", "enum": ["Low", "Normal", "Urgent"] },
+        "slaDeadline": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Reported", "In Progress", "Resolved", "Escalated"] },
+        "citizenMessage": { "type": "string" },
+        "workOrderDraft": { "type": "string" },
+        "isDuplicate": { "type": "boolean" },
+        "mergedIntoId": { "type": "string" },
+        "duplicateCount": { "type": "integer" },
+        "reasoning": { "type": "string" },
+        "citizenComment": { "type": "string", "description": "Optional citizen comments/notes" }
+      },
+      "required": ["id", "category", "severity", "shortDescription", "hazard", "photoUrl", "location", "address", "createdAt", "department", "priority", "slaDeadline", "status", "citizenMessage", "workOrderDraft", "isDuplicate", "mergedIntoId", "duplicateCount", "reasoning", "citizenComment"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User account profile detailing their role and identity.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique Firebase Auth user ID" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["citizen", "authority"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "reports/{reportId}": {
+      "schema": "Report",
+      "description": "Collection of all active and resolved civic reports."
+    },
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profile database storing roles and details."
+    }
+  }
+}

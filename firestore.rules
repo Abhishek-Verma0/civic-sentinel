@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions for validation
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['id', 'category', 'severity', 'shortDescription', 'hazard', 'photoUrl', 'location', 'address', 'createdAt', 'department', 'priority', 'slaDeadline', 'status', 'citizenMessage', 'workOrderDraft', 'isDuplicate', 'duplicateCount', 'reasoning', 'citizenComment'])
+        && data.id is string
+        && data.category is string
+        && data.severity is int
+        && data.shortDescription is string
+        && data.hazard is bool
+        && data.photoUrl is string
+        && data.location is map
+        && (data.location.lat is float || data.location.lat is int)
+        && (data.location.lng is float || data.location.lng is int)
+        && data.address is string
+        && data.createdAt is string
+        && data.department is string
+        && data.priority is string
+        && data.slaDeadline is string
+        && data.status is string
+        && data.citizenMessage is string
+        && data.workOrderDraft is string
+        && data.isDuplicate is bool
+        && data.duplicateCount is int
+        && data.reasoning is string
+        && data.citizenComment is string;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt'])
+        && data.uid is string
+        && data.email is string
+        && data.displayName is string
+        && data.role is string
+        && (data.role == 'citizen' || data.role == 'authority')
+        && data.createdAt is string;
+    }
+
+    // Reports Collection Rules
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if isValidId(reportId) && isValidReport(incoming());
+      allow update: if isValidId(reportId) && isValidReport(incoming());
+      allow delete: if false; // Deletion is not permitted for accountability
+    }
+
+    // Users Collection Rules
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId && isValidUser(incoming());
+      allow delete: if false;
+    }
+  }
+}

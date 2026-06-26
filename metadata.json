@@ -1,0 +1,6 @@
+{
+  "name": "CivicSentinel",
+  "description": "An autonomous civic AI agent that perceives, decides, acts, and follows up on citizen-reported infrastructure issues.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
